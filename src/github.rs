@@ -13,9 +13,13 @@ pub async fn get_pull_request(
 
     let client = Client::new();
 
+    let token = std::env::var("GITHUB_TOKEN")
+        .expect("GitHub Token not set.");
+
     let response = client
         .get(url)
         .header("User-Agent", "pr-automation")
+        .bearer_auth(token)
         .send()
         .await?;
 
