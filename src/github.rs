@@ -21,7 +21,8 @@ pub async fn get_pull_request(
         .header("User-Agent", "pr-automation")
         .bearer_auth(token)
         .send()
-        .await?;
+        .await?
+        .error_for_status()?;
 
     let pull_request = response
         .json::<GitHubPullRequest>()

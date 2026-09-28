@@ -14,9 +14,14 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
     println!("Targer: {}", payload.pull_request.base.r#ref);
     println!("SHA: {}", payload.pull_request.head.sha);
 
-    let pr = get_pull_request(&payload.repository.owner.login, &payload.repository.name, payload.number)
-        .await
-        .unwrap();
+    let pr = match get_pull_request(&payload.repository.owner.login, &payload.repository.name, payload.number)
+        .await {
+            Ok(pr) => pr,
+            Err(err) => {
+                eprintln!("GitHub API Error: {}", err);
+                return;
+            }
+        };
 
     println!("Title: {}", pr.title);
     println!("Title: {}", pr.state);
