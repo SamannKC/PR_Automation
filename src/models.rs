@@ -37,4 +37,5 @@ pub struct GitHubPullRequest {
     pub title: String,
     pub state: String, 
     pub html_url: String, 
+    pub head: Branch,
 }

@@ -24,8 +24,10 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
         };
 
     println!("Title: {}", pr.title);
-    println!("Title: {}", pr.state);
-    println!("Title: {}", pr.html_url);
+    println!("state: {}", pr.state);
+    println!("URL: {}", pr.html_url);
+    println!("Branch: {}", pr.head.r#ref);
+    println!("SHA: {}", pr.head.sha);
 
 
 }
