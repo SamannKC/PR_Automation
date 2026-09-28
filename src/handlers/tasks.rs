@@ -1,7 +1,8 @@
 use axum::Json;
 use crate::{
-    models::PullRequestEvent,
-    github::get_pull_request,
+    github::get_pull_request, 
+    models::PullRequestEvent, workspace,
+    workspace::checkout_repo,
 };
 
 
@@ -29,5 +30,17 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
     println!("Branch: {}", pr.head.r#ref);
     println!("SHA: {}", pr.head.sha);
 
+    let workspace = match workspace::checkout_repo(
+        &payload.repository.owner.login,
+        &payload.repository.name,
+        &pr.head.sha
+    ) {
+        Ok(path) => path,
+        Err(err) => {
+            eprintln!("Checkout error: {}", err);
+            return;
+        }
+    };
 
+    println!("PR checkedout at: {}", workspace);
 }
