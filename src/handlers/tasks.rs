@@ -48,6 +48,13 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
         Ok(result) => result,
         Err(err) => {
             eprintln!("Test execution error {}", err);
+
+            match fs::remove_dir_all(&workspace){
+                Ok(_) => println!("Workspace cleaned up"),
+                Err(err) => {
+                    eprintln!("Workspace cleanup error: {}", err);
+                }
+            }
             return;
         }
     };
