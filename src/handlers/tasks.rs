@@ -1,8 +1,6 @@
 use axum::Json;
 use crate::{
-    github::get_pull_request, 
-    models::PullRequestEvent,
-    workspace::checkout_repo,
+    github::get_pull_request, models::PullRequestEvent, workspace::{checkout_repo, run_tests},
 };
 
 
@@ -43,4 +41,19 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
     };
 
     println!("PR checkedout at: {}", workspace);
+
+    let tests_passed = match run_tests(&workspace){
+        Ok(result) => result,
+        Err(err) => {
+            eprintln!("Test execution error {}", err);
+            return;
+        }
+    };
+
+    if tests_passed{
+        println!("Passed tests");
+    } else {
+        println!("test failed");
+    }
+
 }
