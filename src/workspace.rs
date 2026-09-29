@@ -54,31 +54,3 @@ pub fn checkout_repo(
     Ok(workspace)
 
 }
-
-
-pub fn run_tests(
-    workspace: &str,
-) -> Result<(bool, String), Box<dyn std::error::Error>> {
-    let output = std::process::Command::new("docker")
-        .args([
-            "run",
-            "--rm",
-            "--user",
-            "1001:1001",
-            "-v",
-            &format!("{}:/workspace", workspace),
-            "-w",
-            "/workspace",
-            "rust",
-            "cargo",
-            "test",
-        ])
-        .output()?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-
-    let test_output = format!("{}{}", stdout, stderr);
-
-    Ok((output.status.success(), test_output))
-}

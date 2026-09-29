@@ -2,7 +2,11 @@ use std::fs;
 
 use axum::Json;
 use crate::{
-    github::get_pull_request, models::PullRequestEvent, workspace::{checkout_repo, run_tests},
+    github::get_pull_request, 
+    models::PullRequestEvent, 
+    workspace::{checkout_repo},
+    runner::run_project,
+    project
 };
 
 
@@ -44,27 +48,30 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
 
     println!("PR checkedout at: {}", workspace);
 
-    let (tests_passed, output)= match run_tests(&workspace){
-        Ok(result) => result,
-        Err(err) => {
-            eprintln!("Test execution error {}", err);
+    let projects = project::detect_projects(&workspace);
 
-            match fs::remove_dir_all(&workspace){
-                Ok(_) => println!("Workspace cleaned up"),
-                Err(err) => {
-                    eprintln!("Workspace cleanup error: {}", err);
+    for (project_type, path) in projects {
+        let tests_passed = match run_project(&project_type, &path) {
+            Ok(result) => result,
+            Err(err) => {
+                eprintln!("Test execution error: {}", err);
+
+                match fs::remove_dir_all(&workspace) {
+                    Ok(_) => println!("Workspace cleaned up"),
+                    Err(cleanup_err) => {
+                        eprintln!("Workspace cleanup error: {}", cleanup_err);
+                    }
                 }
+
+                return;
             }
-            return;
+        };
+
+        if tests_passed {
+            println!("Passed tests");
+        } else {
+            println!("Tests failed");
         }
-    };
-
-    println!("Test output: \n{}", output);
-
-    if tests_passed{
-        println!("Passed tests");
-    } else {
-        println!("test failed");
     }
 
     match fs::remove_dir_all(&workspace) {

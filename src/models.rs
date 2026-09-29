@@ -1,5 +1,13 @@
 use serde::Deserialize;
 
+
+#[derive(Debug)]
+pub enum ProjectType {
+    Rust,
+    Node,
+    Python,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct PullRequestEvent {
     pub action: String,
