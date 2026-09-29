@@ -8,6 +8,7 @@ pub fn checkout_repo(
 ) -> Result<String, Box<dyn std::error::Error>>{
     let workspace = format!("/tmp/pr-automation-{}", sha);
 
+
     fs::create_dir_all(&workspace)?;
 
     let repo_url = format!("https://github.com/{}/{}.git", owner, repo);
@@ -62,6 +63,8 @@ pub fn run_tests(
         .args([
             "run",
             "--rm",
+            "--user",
+            "1001:1001",
             "-v",
             &format!("{}:/workspace", workspace),
             "-w",

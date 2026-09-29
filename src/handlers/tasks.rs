@@ -1,3 +1,5 @@
+use std::fs;
+
 use axum::Json;
 use crate::{
     github::get_pull_request, models::PullRequestEvent, workspace::{checkout_repo, run_tests},
@@ -56,6 +58,11 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
         println!("Passed tests");
     } else {
         println!("test failed");
+    }
+
+    match fs::remove_dir_all(&workspace) {
+        Ok(_) => println!("Workspace cleaned up"),
+        Err(err) => eprintln!("Workspace cleanup error: {}", err),
     }
 
 }
