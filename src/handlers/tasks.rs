@@ -42,13 +42,15 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
 
     println!("PR checkedout at: {}", workspace);
 
-    let tests_passed = match run_tests(&workspace){
+    let (tests_passed, output)= match run_tests(&workspace){
         Ok(result) => result,
         Err(err) => {
             eprintln!("Test execution error {}", err);
             return;
         }
     };
+
+    println!("Test output: \n{}", output);
 
     if tests_passed{
         println!("Passed tests");
