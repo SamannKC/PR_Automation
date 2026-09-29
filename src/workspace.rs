@@ -37,6 +37,19 @@ pub fn checkout_repo(
         return Err("git checkout failed".into());
     }
 
+    let output = Command::new("git")
+        .args([
+            "-C",
+            &workspace,
+            "rev-parse",
+            "HEAD",
+        ])
+        .output()?;
+
+    let checked_out_sha = String::from_utf8(output.stdout)?;
+
+    println!("Checked out SHA: {}",checked_out_sha.trim());
+
     Ok(workspace)
 
 }
