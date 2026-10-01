@@ -11,6 +11,15 @@ use crate::{
 
 
 pub async fn webhook(Json(payload): Json<PullRequestEvent>){
+
+    match payload.action.as_str() {
+        "opened" | "synchronize" | "reopened" => {}
+        _ => {
+            println!("Ignoring PR action: {}", payload.action);
+            return;
+        }
+    }
+
     println!("Repository: {}", payload.repository.full_name);
     println!("Owner: {}", payload.repository.owner.login);
     println!("PR action: {}", payload.action);
@@ -54,7 +63,7 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
     let mut results = Vec::new();
 
     for (project_type, path) in projects {
-        let tests_passed = match run_project(&project_type, &path) {
+        let tests_passed= match run_project(&project_type, &path) {
             Ok(result) => result,
             Err(err) => {
                 eprintln!("Test execution error: {}", err);
@@ -71,16 +80,16 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
         };
 
         if tests_passed {
-            results.push(format!("{:?}: PASSED", project_type));
+            results.push(format!("{:?}: PASSED",project_type));
             println!("Passed tests");
         } else {
-            results.push(format!("{:?}: FAILED", project_type));
+            results.push(format!("{:?}: FAILED",project_type));
             all_passed = false;
             println!("Tests failed");
         }
     }
 
-    let description = results.join(" | ");
+    let description = results.join("  |  ");
 
     let state = if all_passed {
         "success"

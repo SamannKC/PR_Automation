@@ -24,6 +24,7 @@ pub fn run_project(project_type: &ProjectType, project_path: &str) -> Result<boo
             println!("{}", String::from_utf8_lossy(&output.stderr));
 
             Ok(output.status.success())
+
         }
 
         ProjectType::Node => {
@@ -71,7 +72,7 @@ pub fn run_project(project_type: &ProjectType, project_path: &str) -> Result<boo
         println!("{}", String::from_utf8_lossy(&output.stdout));
         println!("{}", String::from_utf8_lossy(&output.stderr));
 
-        Ok(output.status.success())
+            Ok(output.status.success())
         }
     }
 }
