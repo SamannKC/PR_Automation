@@ -2,7 +2,7 @@ use std::fs;
 
 use axum::Json;
 use crate::{
-    github::get_pull_request, 
+    github::{get_pull_request, report_status}, 
     models::PullRequestEvent, 
     workspace::{checkout_repo},
     runner::run_project,
@@ -50,6 +50,9 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
 
     let projects = project::detect_projects(&workspace);
 
+    let mut all_passed = true;
+    let mut results = Vec::new();
+
     for (project_type, path) in projects {
         let tests_passed = match run_project(&project_type, &path) {
             Ok(result) => result,
@@ -68,10 +71,34 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
         };
 
         if tests_passed {
+            results.push(format!("{:?}: PASSED", project_type));
             println!("Passed tests");
         } else {
+            results.push(format!("{:?}: FAILED", project_type));
+            all_passed = false;
             println!("Tests failed");
         }
+    }
+
+    let description = results.join(" | ");
+
+    let state = if all_passed {
+        "success"
+    } else {
+        "failure"
+    };
+
+    match report_status(
+        &payload.repository.owner.login,
+        &payload.repository.name,
+        &pr.head.sha,
+        state,
+        &description,
+    )
+    .await
+    {
+        Ok(_) => println!("GitHub status reported"),
+        Err(err) => eprintln!("Failed to report GitHub status: {}", err),
     }
 
     match fs::remove_dir_all(&workspace) {

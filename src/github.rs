@@ -1,5 +1,6 @@
 use reqwest::Client;
-use crate::models::GitHubPullRequest;
+use crate::models::{GitHubPullRequest, GithubStatus};
+
 
 pub async fn get_pull_request(
     owner: &str,
@@ -31,3 +32,37 @@ pub async fn get_pull_request(
     Ok(pull_request)
 }
 
+pub async fn report_status(
+    owner: &str,
+    repo: &str,
+    sha: &str,
+    state: &str,
+    description: &str,
+) -> Result<(), reqwest::Error> {
+    let url = format!(
+        "https://api.github.com/repos/{}/{}/statuses/{}",
+        owner, repo, sha
+    );
+
+    let client = Client::new();
+
+    let token = std::env::var("GITHUB_TOKEN")
+        .expect("GITHUB_TOKEN is not set");
+
+    let status = GithubStatus {
+        state: state.to_string(),
+        description: description.to_string(),
+        context: "pr-automation".to_string(),
+    };
+
+    client
+        .post(url)
+        .header("User-Agent", "pr-automation")
+        .bearer_auth(token)
+        .json(&status)
+        .send()
+        .await?
+        .error_for_status()?;
+
+    Ok(())
+}

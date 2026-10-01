@@ -8,6 +8,13 @@ pub enum ProjectType {
     Python,
 }
 
+#[derive(serde::Serialize)]
+pub struct GithubStatus {
+    pub state: String, 
+    pub description: String,
+    pub context: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct PullRequestEvent {
     pub action: String,
