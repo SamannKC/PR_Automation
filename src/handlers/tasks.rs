@@ -1,6 +1,10 @@
 use std::fs;
-
-use axum::Json;
+use hmac::{Hmac, KeyInit, Mac};
+use sha2::Sha256;
+use axum::{
+    body::Bytes,
+    http::HeaderMap,
+};
 use crate::{
     github::{get_pull_request, report_status}, 
     models::PullRequestEvent, 
@@ -10,7 +14,63 @@ use crate::{
 };
 
 
-pub async fn webhook(Json(payload): Json<PullRequestEvent>){
+pub async fn webhook(
+    headers: HeaderMap,
+    body: Bytes,
+) {
+
+    let signature = match headers.get("X-Hub-Signature-256") {
+        Some(value) => value,
+        None => {
+            eprintln!("Missing GitHub signature");
+            return;
+        }
+    };
+
+    let signature = match signature.to_str() {
+        Ok(value) => value,
+        Err(_) => {
+            eprintln!("Invalid signature header");
+            return;
+        }
+    };
+
+    let signature = match signature.strip_prefix("sha256=") {
+        Some(value) => value,
+        None => {
+            eprintln!("Invalid signature format");
+            return;
+        }
+    };
+
+    let signature = match hex::decode(signature) {
+        Ok(value) => value,
+        Err(_) => {
+            eprintln!("Invalid signature encoding");
+            return;
+        }
+    };
+
+    let secret = std::env::var("WEBHOOK_SECRET")
+        .expect("WEBHOOK_SECRET is not set");
+
+    let mut mac = Hmac::<Sha256>::new_from_slice(secret.as_bytes())
+        .expect("Invalid HMAC key");
+
+    mac.update(&body);
+
+    if mac.verify_slice(&signature).is_err() {
+        eprintln!("Invalid GitHub webhook signature");
+        return;
+    }
+
+    let payload: PullRequestEvent = match serde_json::from_slice(&body) {
+        Ok(payload) => payload,
+        Err(err) => {
+            eprintln!("Invalid webhook payload: {}", err);
+            return;
+        }
+    };
 
     match payload.action.as_str() {
         "opened" | "synchronize" | "reopened" => {}
@@ -58,6 +118,30 @@ pub async fn webhook(Json(payload): Json<PullRequestEvent>){
     println!("PR checkedout at: {}", workspace);
 
     let projects = project::detect_projects(&workspace);
+
+    if projects.is_empty() {
+        eprintln!("No supported projects detected");
+
+        match report_status(
+            &payload.repository.owner.login,
+            &payload.repository.name,
+            &pr.head.sha,
+            "failure",
+            "No supported projects detected",
+        )
+        .await
+        {
+            Ok(_) => println!("GitHub status reported"),
+            Err(err) => eprintln!("Failed to report GitHub status: {}", err),
+        }
+
+        match fs::remove_dir_all(&workspace) {
+            Ok(_) => println!("Workspace cleaned up"),
+            Err(err) => eprintln!("Workspace cleanup error: {}", err),
+        }
+
+        return;
+    }
 
     let mut all_passed = true;
     let mut results = Vec::new();
